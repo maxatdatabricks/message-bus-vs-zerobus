@@ -13,6 +13,16 @@
 
 ## Code Quality & Organization
 
+**Testing**:
+    - You should try and run the files you are working on if appropriate.
+    - Since you are using uv or another package manager to create venvs, don't forget to use the venv instead of the base interpreter.
+
+**Logging**:
+    - Use appropriate logging levels (INFO, DEBUG, ERROR)
+    - Don't use print statements for debugging
+    - Ensure logs are meaningful and help with debugging
+    - Use loguru for logging
+
 **Clean Code Always**:
    - Delete unused files immediately
    - Remove duplicate code that you've implemented without being told
