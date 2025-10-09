@@ -4,32 +4,78 @@ A Databricks demo application that compares the performance and implementation a
 
 ## Overview
 
-This project demonstrates two different methods for writing streaming data to Databricks streaming tables:
+This project demonstrates the use of ZeroBus for directly writing to a UC table via the Python SDK and the REST API.
 
-1. **Traditional Approach**: Using the Lakeflow Connect Kafka connector with Azure Event Hub
-2. **Modern Approach**: Using the new ZeroBus API directly
+Running the main application will send data to the created or configured UC table. This repo includes helper steps to create an appriopriate catalog, schema, and table but you can adapt it however you want.
 
-## What's Being Compared
+## Demo Behaviour
+The demo application will send `AirQuality` messages to a UC table and include the source of the data. It has the following format:
+```
+{
+    "timestamp": datetime,
+    "device_name": str,
+    "temp": float,
+    "humidity": float,
+    "source": str
+}
+```
 
-### Lakeflow Connect with Azure Event Hub
-- Uses the Databricks Lakeflow Connect Kafka connector
-- Connects to an Azure Event Hub topic as the message source
-- Data flows through the Kafka-compatible Event Hub interface
-- Leverages existing Kafka ecosystem tooling
+## Instructions
 
-### ZeroBus API
-- Direct integration with Databricks' new ZeroBus streaming API
-- Native streaming ingestion without external message bus dependencies
-- Simplified architecture with fewer moving parts
+1. Create a target table in your Databricks workspace - modify the following SQL code as needed:
+```sql
+CREATE CATALOG IF NOT EXISTS m_demo_catalog;
+CREATE SCHEMA IF NOT EXISTS m_demo_catalog.demo_schema;
+CREATE TABLE IF NOT EXISTS m_demo_catalog.demo_schema.air_quality (
+    timestamp TIMESTAMP,
+    device_name STRING,
+    temp DOUBLE,
+    humidity DOUBLE,
+    source STRING
+)
+```
 
-## Goals
+2. Create a .env file by copying the contents of `env.example` and filling in the required values.
 
-This demo will help evaluate:
-- **Performance**: Throughput and latency differences between the two approaches
-- **Complexity**: Implementation and operational overhead
-- **Cost**: Infrastructure and operational costs
-- **Ease of Use**: Developer experience and maintainability
+3. Ensure that you have added granted the necessary permissions to your Databricks SP:
+    - `USE CATALOG` on the target catalog
+    - `USE SCHEMA` on the target schema
+    - `MODIFY` on the target table
+    - `SELECT` on the target table (for verification)
 
-## Architecture
+4. Activate your `uv` virtual environment from the root of the repo:
+```bash
+uv venv
+source .venv/bin/activate
+```
 
-Both approaches will ingest the same dataset and write to Databricks streaming tables, allowing for direct performance comparison under identical conditions.
+5. Create the protobuf files:
+The provided script `create_proto.sh` uses the `generate_proto` tool from the Zerobus SDK to create the necessary Python files from your table definition in Unity Catalog.
+
+Navigate to the `src` directory and run the script:
+```bash
+cd src
+./create_proto.sh
+cd ..
+```
+*Note: This script generates an authentication token from your Service Principal to authenticate with Unity Catalog, as the `generate_proto` tool expects a token.*
+
+6. Run the demo applications:
+You can now run the example scripts to send data to your table.
+
+   **Python SDK Example**
+   This script uses the asynchronous Zerobus Python SDK to send 10,000 records.
+   ```bash
+   python src/python_sdk_example.py
+   ```
+
+   **REST API Example**
+   This script uses `requests` to send 10,000 records via the Zerobus REST API.
+   ```bash
+   python src/rest_api_example.py
+   ```
+   > **Note:** As of this writing, the REST API endpoint for the staging environment is not resolving correctly, and this script currently fails with a `NameResolutionError`. The correct endpoint is being investigated.
+
+
+
+
